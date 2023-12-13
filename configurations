@@ -1,0 +1,117 @@
+Step 1: Configure Hadoop cluster
+
+a) Install 3 ubuntu in Virtual box.
+hadoop-master	192.168.56.102
+node1	192.168.56.103
+node2	192.168.56.104
+b) enable SSH connection, generated RSA keys on hadoop-master and distributed to node1 and node2
+c)	disable the firewall to enable telnet
+sudo systemctl stop firewalld
+sudo ufw disable
+(make sure ping is working accross the nodes)
+d)	download and install Hadoop 3.3.1 on all three machines with following configuration
+
+
+envirnment variables
+
+export PDSH_RCMD_TYPE=ssh
+export HADOOP_HOME="/opt/hadoop"
+export HADOOP_COMMON_HOME=$HADOOP_HOME
+export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+export HADOOP_HDFS_HOME=$HADOOP_HOME
+export HADOOP_MAPRED_HOME=$HADOOP_HOME
+export HADOOP_YARN_HOME=$HADOOP_HOME
+
+
+/etc/hosts
+
+127.0.0.1	localhost
+127.0.1.1	hadoop
+
+# The following lines are desirable for IPv6 capable hosts
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+
+
+127.0.0.1       www.sublimetext.com
+127.0.0.1       license.sublimehq.com
+
+192.168.56.102 hadoop-master
+192.168.56.103 node1
+192.168.56.104 node2
+
+
+
+core-site.xml
+
+<configuration>
+<property>
+<name>fs.defaultFS</name>
+<value>hdfs://192.168.56.102:9000</value>
+</property>
+</configuration>
+
+
+hdfs-site.xml
+
+<configuration>
+<property>
+<name>dfs.namenode.name.dir</name><value>/opt/hadoop/data/nameNode</value>
+</property>
+<property>
+<name>dfs.datanode.data.dir</name><value>/opt/hadoop/data/dataNode</value>
+</property>
+<property>
+<name>dfs.replication</name>
+<value>2</value>
+</property>
+
+<property>
+  <name>dfs.permissions</name>
+  <value>false</value>
+</property>
+
+</configuration>
+
+
+workers
+
+node1
+node2
+
+
+e)	start the Hadoop-master and node1, node2 by command: start-dfs.sh
+
+Step 2: Write and test simple java programs on node1 and node2 for mapper and reducer which return number of characters in text file.
+a)	javac Mapper.java -cp $(/opt/hadoop/bin/hadoop classpath)
+b)	jar cvf Mapper.jar Mapper.class 
+c)	javac Reducer.java -cp $(/opt/hadoop/bin/hadoop classpath)
+d)	jar cvf Reducer.jar Reducer.class 
+e)	hadoop jar Mapper.jar Mapper 0 100000 input.txt mapper_out0.txt
+f)	hadoop jar Reducer.jar Reducer 1 mapper_out reducer_out
+Our goal is to distribute above jobs on both nodes in such a way that we achieve dynamic load balancing
+
+
+
+on all nodes
+sudo systemctl stop firewalld
+sudo ufw disable
+
+On master 
+
+start-dfs.sh
+pyro4-ns
+python3 serverHeartBeat.py 
+
+on nodes
+python3 mapReduceServer.py
+python3 resourceReportServer.py
+python3 clientHeartBeat.py 
+
+
+then on master
+python3 mainAlgorithm.py 
+
